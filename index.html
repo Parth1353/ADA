@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -71,10 +71,11 @@
         border-radius: 4px;
         cursor: pointer;
         transition: background-color 0.3s;
+        padding: 8px 16px;
       }
 
       button:hover {
-        background-color: #0056b3;
+        background-color: var(--button-hover);
       }
 
       .visualization {
@@ -140,7 +141,8 @@
       .stats {
         margin-top: 20px;
         padding: 15px;
-        background-color: #f8f9fa;
+        
+        color: var(--text-color);
         border-radius: 5px;
       }
 
@@ -805,6 +807,12 @@
       document.addEventListener('DOMContentLoaded', () => {
         addStyles();
         initializeModal();
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        // Force dark theme as default
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
       });
     </script>
   </body>
