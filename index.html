@@ -133,8 +133,12 @@
       }
 
       .error-message {
-        color: #dc3545;
-        margin: 5px 0;
+        color: #ff4444;
+        background-color: rgba(255, 68, 68, 0.1);
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        border-left: 4px solid #ff4444;
         display: none;
       }
 
@@ -403,6 +407,116 @@
           margin: 10px 0 20px 0;
         }
       }
+
+      .optimization-steps {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: var(--input-section-bg);
+        border-radius: 8px;
+      }
+
+      .step {
+        margin: 15px 0;
+        padding: 15px;
+        background-color: var(--container-bg);
+        border-radius: 6px;
+      }
+
+      .permutations-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+        font-family: monospace;
+      }
+
+      .permutations-table th,
+      .permutations-table td {
+        padding: 8px 16px;
+        text-align: left;
+        border: 1px solid var(--tape-bg);
+      }
+
+      .permutations-table td {
+        white-space: pre;
+        font-size: 1.1em;
+      }
+
+      .optimal {
+        background-color: rgba(76, 175, 80, 0.2);
+      }
+
+      .optimal-result {
+        margin-top: 15px;
+        font-weight: bold;
+        font-size: 1.1em;
+      }
+
+      .step h4 {
+        margin-bottom: 15px;
+        font-size: 1.1em;
+      }
+
+      .distribution-step {
+        margin: 10px 0;
+        padding: 10px;
+        background-color: var(--input-section-bg);
+        border-radius: 4px;
+      }
+
+      .tape-status {
+        margin-top: 5px;
+        padding: 5px;
+        font-family: monospace;
+      }
+
+      .distribution-info {
+        background-color: var(--input-section-bg);
+        padding: 15px;
+        border-radius: 6px;
+        margin: 10px 0;
+      }
+
+      .metrics {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--tape-bg);
+      }
+
+      .metrics p {
+        margin: 5px 0;
+        font-family: monospace;
+      }
+
+      .distribution-step {
+        margin: 15px 0;
+        padding: 10px;
+        background-color: var(--container-bg);
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--tape-bg);
+        border-radius: 4px;
+        background-color: var(--input-section-bg);
+        color: var(--text-color);
+      }
+
+      .input-group input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+      }
+
+      .result-background {
+        background-color: rgba(144, 238, 144, 0.5); 
+        padding: 10px;
+        border-radius: 4px;
+        font-weight: bold;
+        color: black; /* Ensure text is readable */
+      }
     </style>
   </head>
   <body>
@@ -419,8 +533,8 @@
           <input
             type="text"
             id="fileInput"
-            value="4,5,8,7,3,9"
-            placeholder="e.g., 4,5,8,7,3,9"
+            value="5,10,3"
+            placeholder="e.g.5,10,3"
           />
         </div>
         <button onclick="startVisualization()">Visualize</button>
@@ -431,9 +545,8 @@
         <div class="algorithm-select">
           <label>Algorithm:</label>
           <select id="algorithmType">
-            <option value="greedy">Greedy</option>
-            
-        
+            <option value="optimal">Optimal Ordering</option>
+         
           </select>
         </div>
 
@@ -477,6 +590,11 @@
         <div id="modalStats"></div>
       </div>
     </div>
+
+    <footer style="text-align: center; margin-top: 20px; color: var(--text-color);">
+      &copy; Made by <h3> Parth Saini:22BCS070</h3>
+      <h3>Hammad Hashmi:22BCS043</he>
+    </footer>
 
     <script>
       let animationSpeed = 500;
@@ -530,6 +648,8 @@
             throw new Error("Please enter valid file sizes");
           if (numTapes <= 0)
             throw new Error("Number of tapes must be greater than 0");
+          if (numTapes < files.length)
+            throw new Error("Number of tapes must be greater than or equal to number of files for single file per tape distribution");
 
           const algorithm = document.getElementById("algorithmType").value;
           const colorTheme = document.getElementById("colorTheme").value;
@@ -553,27 +673,42 @@
       async function distributeFiles(files, numTapes, algorithm, colorTheme) {
         const visualizationDiv = document.getElementById("visualization");
         const tapes = [];
-
-     
         visualizationDiv.innerHTML = '';
-
+        
       
         for (let i = 0; i < numTapes; i++) {
-            const tapeDiv = document.createElement("div");
-            tapeDiv.className = "tape";
-            tapeDiv.id = `tape-${i}`;
-            visualizationDiv.appendChild(tapeDiv);
-            tapes.push({ div: tapeDiv, currentLength: 0, files: [] });
+          const tapeDiv = document.createElement("div");
+          tapeDiv.className = "tape";
+          tapeDiv.id = `tape-${i}`;
+          visualizationDiv.appendChild(tapeDiv);
+          tapes.push({ div: tapeDiv, currentLength: 0, files: [] });
         }
 
-      
-        const sortedFiles = [...files].sort((a, b) => a - b);
+        let fileOrder;
+        if (algorithm === 'optimal') {
+       
+          fileOrder = await visualizeOptimizationSteps(files);
+        } else {
+         
+          fileOrder = [...files].sort((a, b) => b - a);
+        }
 
+    
+        const statsDiv = document.getElementById('stats');
+        statsDiv.innerHTML += `
+          <div class="step">
+            <h4>Step 3: Distributing Files to Tapes</h4>
+          </div>
+        `;
+
+      
+        for (let i = 0; i < fileOrder.length; i++) {
+          const file = fileOrder[i];
+          let targetTape = findMinLengthTape(tapes);
+          await addFileToTape(targetTape, file, i, colorTheme);
+          
         
-        for (let i = 0; i < sortedFiles.length; i++) {
-            const file = sortedFiles[i];
-            let targetTape = findMinLengthTape(tapes);
-            await addFileToTape(targetTape, file, i, colorTheme);
+          updateDistributionStatus(tapes, file, targetTape);
         }
 
         return tapes;
@@ -591,7 +726,7 @@
         const fileBlock = document.createElement("div");
         fileBlock.className = "file-block";
 
-        // Calculate width and position
+ 
         const width = (fileSize / 10) * 100;
         const left = (tape.currentLength / 10) * 100;
 
@@ -629,38 +764,38 @@
 
       function updateStats(tapes) {
         const modalStats = document.getElementById('modalStats');
-        modalStats.innerHTML = `
-            <div class="stats-container">
-                <h2 class="stats-header">Statistics</h2>
-                
-                <div class="tapes-info">
-                    ${tapes.map((tape, index) => `
-                        <div class="tape-stat">
-                            <span class="tape-label">Tape ${index + 1}:</span>
-                            <span class="tape-details">Total Length = ${tape.currentLength}, Files = [${tape.files.join(", ")}]</span>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <div class="summary-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Maximum Tape Length:</span>
-                        <span class="stat-value">${Math.max(...tapes.map(t => t.currentLength))}</span>
-                    </div>
-                    
-                    <div class="stat-item">
-                        <span class="stat-label">Minimum Retrieval Time:</span>
-                        <span class="stat-value">${calculateMRT(tapes).toFixed(2)}</span>
-                    </div>
-                    
-                    <div class="stat-item">
-                        <span class="stat-label">Optimal Order:</span>
-                        <span class="stat-value">[${[...new Set(tapes.flatMap(t => t.files))].sort((a, b) => a - b).join(", ")}]</span>
-                    </div>
-                </div>
-            </div>
-        `;
         
+      
+        const files = tapes
+          .filter(tape => tape.files.length > 0)
+          .map(tape => tape.files[0])
+          .sort((a, b) => a - b);
+
+      
+        let runningSum = 0;
+        let terms = [];
+        let totalSum = 0;
+        
+        for (let file of files) {
+          runningSum += file;
+          terms.push(runningSum);
+          totalSum += runningSum;
+        }
+
+        modalStats.innerHTML = `
+          <div class="stats-container">
+            <h2 class="stats-header">Optimal Solution</h2>
+            <div class="stat-item">
+              <div class="stat-value result-background">
+                [${files.join(', ')}] &nbsp;&nbsp; ${terms.join(' + ')} = ${totalSum}
+              </div>
+            </div>
+            <footer style="text-align: center; margin-top: 20px; color: var(--text-color);">
+              &copy; Made by <h3>Parth Saini: 22BCS070</h3>
+              <h3>Hammad Hashmi: 22BCS043</h3>
+            </footer>
+          </div>
+        `;
         
         const modal = document.getElementById('statsModal');
         modal.style.display = "block";
@@ -760,30 +895,40 @@
 
      
       function calculateMRT(tapes) {
-       
         let allFiles = [];
         tapes.forEach(tape => {
           allFiles = allFiles.concat(tape.files);
         });
         
-       
-        const uniqueFiles = [...new Set(allFiles)].sort((a, b) => a - b);
+        return calculateDValue(allFiles);
+      }
+
+      function getAllPermutations(arr) {
+        if (arr.length <= 1) return [arr];
         
-       
-        let MRT = 0;
-        for (let i = 0; i < uniqueFiles.length; i++) {
-          let sum = 0;
-        
-          for (let j = 0; j <= i; j++) {
-            sum += uniqueFiles[j];
+        const result = [];
+        for (let i = 0; i < arr.length; i++) {
+          const current = arr[i];
+          const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
+          const perms = getAllPermutations(remaining);
+          
+          for (let perm of perms) {
+            result.push([current, ...perm]);
           }
-          MRT += sum;
+        }
+        return result;
+      }
+
+      function calculateDValue(ordering) {
+        let sum = 0;
+        let runningSum = 0;
+        
+        for (let i = 0; i < ordering.length; i++) {
+          runningSum += ordering[i];
+          sum += runningSum;
         }
         
-    
-        MRT = MRT / uniqueFiles.length;
-        
-        return MRT;
+        return sum;
       }
 
     
@@ -810,9 +955,141 @@
       });
 
       document.addEventListener('DOMContentLoaded', () => {
-        // Force dark theme as default
+     
         document.documentElement.setAttribute('data-theme', 'dark');
         localStorage.setItem('theme', 'dark');
+      });
+
+     
+      async function visualizeOptimizationSteps(files) {
+        const statsDiv = document.getElementById('stats');
+        statsDiv.innerHTML = '<h3>Optimization Steps</h3>';
+        
+        // Step 1: Show all permutations and their D values
+        const permutations = getAllPermutations(files);
+        let stepsHtml = '<div class="optimization-steps">';
+        
+        stepsHtml += `<div class="step">
+          <h4>Step 1: Generate All Possible Orderings</h4>
+          <table class="permutations-table">
+            <tr>
+              <th>Ordering</th>
+              <th>D(I) Calculation</th>
+              <th>D(I) Value</th>
+            </tr>`;
+        
+        let minD = Infinity;
+        let optimalOrder;
+        
+        for (let perm of permutations) {
+          const dValue = calculateDValue(perm);
+          const calculation = getDValueCalculation(perm);
+          
+          stepsHtml += `<tr class="${dValue === minD ? 'optimal' : ''}">
+            <td>[${perm.join(', ')}]</td>
+            <td>${calculation}</td>
+            <td>${dValue}</td>
+          </tr>`;
+          
+          if (dValue < minD) {
+            minD = dValue;
+            optimalOrder = perm;
+          }
+        }
+        
+        stepsHtml += `</table></div>`;
+        
+ 
+        stepsHtml += `<div class="step">
+          <h4>Step 2: Optimal Ordering Found</h4>
+          <p>The optimal ordering is: [${optimalOrder.join(', ')}] with D(I) = ${minD}</p>
+        </div>`;
+        
+        stepsHtml += '</div>';
+        statsDiv.innerHTML += stepsHtml;
+        
+        return optimalOrder;
+      }
+
+      function getDValueCalculation(ordering) {
+        let calculation = '';
+        let runningSum = 0;
+        let terms = [];
+        
+        for (let i = 0; i < ordering.length; i++) {
+          runningSum += ordering[i];
+          terms.push(runningSum);
+        }
+        
+        return terms.join(' + ') + ' = ' + terms.reduce((a, b) => a + b, 0);
+      }
+
+      function updateDistributionStatus(tapes, file, targetTape) {
+        const statsDiv = document.getElementById('stats');
+        const distributionDiv = document.createElement('div');
+        distributionDiv.className = 'distribution-step';
+        
+        distributionDiv.innerHTML = `
+          <p>Placed file of size ${file} on tape ${tapes.indexOf(targetTape) + 1}</p>
+          <div class="tape-status">
+            ${tapes.map((tape, index) => `
+              Tape ${index + 1}: [${tape.files.join(', ')}] (Total: ${tape.currentLength})
+            `).join('<br>')}
+          </div>
+        `;
+        
+        statsDiv.appendChild(distributionDiv);
+      }
+
+    
+      document.addEventListener('DOMContentLoaded', () => {
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+          .optimization-steps {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: var(--input-section-bg);
+            border-radius: 8px;
+          }
+
+          .step {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: var(--container-bg);
+            border-radius: 6px;
+          }
+
+          .permutations-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+          }
+
+          .permutations-table th,
+          .permutations-table td {
+            padding: 8px;
+            border: 1px solid var(--tape-bg);
+            text-align: left;
+          }
+
+          .permutations-table tr.optimal {
+            background-color: rgba(76, 175, 80, 0.1);
+          }
+
+          .distribution-step {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: var(--input-section-bg);
+            border-radius: 4px;
+          }
+
+          .tape-status {
+            margin-top: 5px;
+            padding: 5px;
+            font-family: monospace;
+          }
+        `;
+        document.head.appendChild(styleSheet);
       });
     </script>
   </body>
